@@ -1,0 +1,45 @@
+//c implementation
+// fn map_range(value: Float, from_low: Float, from_high: Float, to_low: Float, to_high: Float, precision2: u32) -> Float {
+//     let value_scaled = (value - &from_low)/(&from_high - &from_low).complete(precision2);
+//     let result = ((&to_low + &to_high).complete(precision2) - &to_low) * value_scaled;
+//     result
+// }
+
+// //c implementation
+// fn mandelbrot(c: (Float, Float), precision2: u32, max_iter: u32) -> u32 {
+//     let zero = Float::with_val(precision2, 0);
+//     let two = Float::with_val(precision2, 2);
+
+//     let mut z = (zero.clone(), zero.clone());
+//     let mut n = 0;
+//     while n < max_iter {
+//        let result = z.0.clone().mul_add_mul(&z.0, &z.1, &z.1);
+
+//         if result > two.clone() {
+//             break;
+//         }
+//         z.0 = z.0.clone().mul_sub_mul(&z.0, &z.1, &z.1) + &c.0;
+//         z.1 = two.clone() * z.0.clone() * z.1.clone() + &c.1;
+//         n += 1;
+//     }
+//     n
+// }
+
+// //c implementation
+// pub fn xy_mandelbrot(x: i32, y: i32, width: u32, height: u32, precision2: u32, max_iter: u32 ) -> u32 {
+//     let a = map_range(Float::with_val(precision2, x), Float::with_val(precision2, 0), Float::with_val(precision2, width), Float::with_val(precision2, -2), Float::with_val(precision2, 1), precision2);
+//     let b = map_range(Float::with_val(precision2, y), Float::with_val(precision2, 0), Float::with_val(precision2, height), Float::with_val(precision2, -1), Float::with_val(precision2, 1), precision2);
+//     return mandelbrot((a, b), precision2, max_iter);
+// }
+
+// //astro float
+// fn map_range2(value: BigFloat, from_low: BigFloat, from_high: BigFloat, to_low: BigFloat, to_high: BigFloat, precision2: usize) -> BigFloat {
+//     let value_scaled = (&value.sub(&from_low, precision2, RoundingMode::None)).div(&from_high.sub(&from_low, precision2, RoundingMode::None), precision2, RoundingMode::None);
+//     let result = ((&to_low.add(&to_high, precision2, RoundingMode::None)).sub(&to_low, precision2, RoundingMode::None)).mul(&value_scaled, precision2, RoundingMode::None);
+//     result
+// }
+
+//astro float
+// fn mandelbrot2(){
+
+// }
