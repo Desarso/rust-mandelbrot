@@ -1,0 +1,8 @@
+
+
+REFERENCE :High res: Complex { real: -0.745158143673996, imag: 0.12397760041488097 }
+
+
+FRIST PIXEL: Pixel: Complex { real: -0.7451581436739864, imag: 0.12397760041489125 }
+
+Values: 397, 926
