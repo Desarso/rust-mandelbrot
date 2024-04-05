@@ -146,7 +146,8 @@ pub fn xy_mandelbrot_floats(
 ) -> u32 {
     let a = start_x + (slope * x as f64);
     let b = start_y + (slope * y as f64);
-    return mandelbrot_floats(a, b, max_iter);
+    return low_precision_series(complex::Complex::new(a, b), max_iter as f64).len() as u32;
+    // return mandelbrot_floats(a, b, max_iter);
 }
 
 #[wasm_bindgen]
@@ -263,31 +264,55 @@ pub fn float_to_dbig(f: f64) -> DBig {
     return DBig::from_str(&f.to_string()).unwrap();
 }
 
+
+
+//confirmed correct
+pub fn low_precision_series( c: Complex, max_iter: f64) -> Vec<Complex> {
+    let x_0 = c.clone();
+    let mut x_n = Vec::new();
+    let two = Complex::new(2.0, 0.0);
+    x_n.push(x_0.clone());
+    for n in 0..max_iter as usize {
+        let x_n1 = x_n[n].square() + &x_0;
+        x_n.push(x_n1.clone());
+        if &x_n1.magnitude() > &two.magnitude() {
+            return x_n;
+        }
+    }
+    return x_n;
+}
+
 pub fn xy_mandelbrot_perturbation(
-    series: Vec<(Complex, Complex, Complex)>,
     x_n: Vec<Complex>,
     y0: Complex,
-    max_iterations: u32,
-) -> i32 {
-    let delta_0: Complex = &y0 - x_n[0].clone();
+    max_iterations: f64,
+) -> u32 {
+    let delta_0: Complex = &y0 - x_n[0+1].clone();
+    let mut delta_n = Vec::new();
+    let two_complex = Complex::new(2.0, 0.0);
+    delta_n.push(delta_0.clone());
     //check if delta^3 is significantly smaller than delta^2
     if !significanly_smaller(delta_0.clone()) {
         print!("delta^3 is not significantly smaller than delta^2\n");
         //priny y0 and x0
         print!("y0: {}, x0: {}\n", y0, x_n[0]);
-        print!("delta^3: {}, delta^2: {}\n", delta_0.pow(3).magnitude(), delta_0.square().magnitude());
-        panic!("delta^3 is not significantly smaller than delta^2");
+        print!(
+            "delta^3: {}, delta^2: {}\n",
+            delta_0.pow(3).magnitude(),
+            delta_0.square().magnitude()
+        );
+        // panic!("delta^3 is not significantly smaller than delta^2");
     }
-    for n in 0..max_iterations as usize {
-        let delta_n = (&series[n].0 * &delta_0)
-            + (&series[n].1 * delta_0.square())
-            + (&series[n].2 * delta_0.pow(3));
-        let yn = &x_n[n] + &delta_n;
+    for n in 0..x_n.len() {
+        let delta = &two_complex * &x_n[n] * &delta_n[n] + &delta_n[n].square() + &delta_0;
+        let yn = &x_n[n] + &delta;
+        delta_n.push(delta);
         if yn.magnitude() > 2.0 {
-            return n as i32;
+            return n as u32;
         }
     }
-    return max_iterations as i32;
+    
+    return max_iterations as u32;
 }
 //high precision function
 pub fn high_precision_series(mut c: (DBig, DBig)) -> (Vec<(Complex, Complex, Complex)>, Vec<Complex>) {
@@ -339,73 +364,70 @@ pub fn get_perturbed_pixels(
     start_y: f64,
     end_x: f64,
     width: f64,
-    max_iter: u32,
+    max_iter: f64,
 ) -> FrameValues {
+    // let slope = (&end_x - &start_x) / &width;
+    //print screen size
+    // print!("Screen size: {}\n", width * width);
     let screen_size = width * width;
-    let slope = (&end_x - &start_x) / width;
-    let pixesl: Vec<Complex> = (0..screen_size as i32)
-        .map(|i| {
-            let x = i % width as i32;
-            let y = i / width as i32;
-            // pixels are not mapped to the complex plane correctly
+    let slopef64 = (&end_x - &start_x) / width;
+    let slope = float_to_dbig(slopef64);
+    let start_x = float_to_dbig(start_x);
+    let start_y = float_to_dbig(start_y);
+    let mut pixels: Vec<Complex> = Vec::new();
 
-            let x = start_x + (slope * x as f64);
-            let y = start_y + (slope * y as f64);
-            Complex::new(x, y)
-        })
-        .collect();
-    
+    for i in 0..width as i32 {
+        for j in 0..width as i32{
+            let x = &start_x + (&slope * float_to_dbig(i as f64));
+            let y = &start_y + (&slope * float_to_dbig(j as f64));
+            pixels.push(Complex::new_with_high_precision(x, y, 50));
+        }
+    }
+
     let mut high_res_found = false;
-    let mut pixesl_clone = pixesl.clone();
+    let mut pixels_clone = pixels.clone();
     let mut loops = 0;
-    let mut high_res = (Vec::new(), Vec::new());
+    let mut high_res = Vec::new();
     //let time = std::time::Instant::now();
     let mut max = 0;
-    let mut max_res: (Vec<(Complex,Complex,Complex)>,Vec<Complex>) = (Vec::new(), Vec::new());
+    let mut max_res: Vec<Complex> = Vec::new();
+
     while !high_res_found {
-
-
-        let random_index = rand::random::<usize>() % pixesl_clone.len();
-        let y0 = Complex::new(pixesl_clone[random_index].real, pixesl_clone[random_index].imag);
+        let random_index = rand::random::<usize>() % &pixels_clone.len();
+        let mut y0 = pixels_clone[random_index].clone();
         //remove the random index from the list
-        pixesl_clone.remove(random_index);
-        high_res = high_precision_series((float_to_dbig(y0.real),float_to_dbig(y0.imag)));
-        let n = high_res.0.len();
+        pixels_clone.remove(random_index);
+        high_res = y0.high_precision_series(1000, 50);
+        // high_res = low_precision_series((y0.real, y0.imag));
+        let n = high_res.len();
 
-        if high_res.0.len() > max as usize{
+        if n > max as usize {
             max = n;
             max_res = high_res.clone();
             print!("Max: {}\n", max);
         }
 
-        if n >= max_iter as usize{
+        if n >= max_iter as usize {
             high_res_found = true;
             break;
         }
-        loops +=1;
-        if loops == pixesl.len(){
+        loops += 1;
+        if loops == pixels.len() {
             //throw an error
             high_res = max_res.clone();
             break;
+            // panic!("Could not find a high precision series that could generate the right amount of iterations max: {}", n)
         }
     }
-
-    // println!(
-    //     "Time elapsed to get high_res is: {:?}",
-    //     time.elapsed()
-    // );
-    //print the first 10 parts of the high_res
-
-
-
-
+    // let y0 = Complex::new(0.01, 0.01);
+    // let high_res = y0.high_precision_series(1000, 50);
 
     let mut max = 0.0;
     let mut min = 100000.0;
     let mut res: Vec<f64> = Vec::new();
     for i in 0..screen_size as usize {
-        let y0 = Complex::new(pixesl[i].real, pixesl[i].imag);
-        let n = xy_mandelbrot_perturbation(high_res.0.clone(), high_res.1.clone(), y0, max_iter);
+        let y0 = pixels[i].clone();
+        let n = modified_xy_mandelbrot_perturbation( high_res.clone(), y0, max_iter);
         res.push(n as f64);
         if n as f64 > max {
             max = n as f64;
@@ -417,3 +439,44 @@ pub fn get_perturbed_pixels(
     return FrameValues::new(res, min, max);
 }
 
+
+fn modified_xy_mandelbrot_perturbation(
+    x_n: Vec<Complex>,
+    y0: Complex,
+    max_iterations: f64,
+) -> u32 {
+    let delta_0: Complex = &y0 - x_n[1].clone();
+    let mut delta_z = Complex::new(0.0, 0.0);
+    let two_complex = Complex::new(2.0, 0.0);
+    let mut ref_iter = 0;
+    let mut iter = 0;
+    let max_iter = x_n.len() as f64-2.0;
+    //check if delta^3 is significantly smaller than delta^2
+    if !significanly_smaller(delta_0.clone()) {
+        print!("delta^3 is not significantly smaller than delta^2\n");
+        //priny y0 and x0
+        print!("y0: {}, x0: {}\n", y0, x_n[1]);
+        print!(
+            "delta^3: {}, delta^2: {}\n",
+            delta_0.pow(3).magnitude(),
+            delta_0.square().magnitude()
+        );
+        //panic!("delta^3 is not significantly smaller than delta^2");
+    }
+    while iter < max_iter as usize{
+        delta_z = &two_complex  * &delta_z * &x_n[ref_iter] + &delta_z.square() + &delta_0;
+        // print!("delta_z: {}\n", delta_z);
+        ref_iter += 1;
+        let yn = &x_n[ref_iter] + &delta_z;
+        if yn.magnitude() > 2.0 {
+            return iter as u32;
+        }
+        if yn.magnitude() < delta_z.magnitude() || ref_iter == max_iter as usize {
+            delta_z = yn.clone();
+            ref_iter = 0;
+        }
+        iter += 1;
+    }
+    
+    return max_iterations as u32;
+}

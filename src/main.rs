@@ -1,17 +1,17 @@
 pub mod complex;
 
 use core::{panic, time};
-use std::str::FromStr;
+use std::{iter, str::FromStr};
 
 use dashu_float::DBig;
 
 use complex::{test_complexes, Complex};
 use rust_mandelbrot::{get_frame_values, mandelbrot_floats, xy_mandelbrot_floats, FrameValues};
 
-const START_X: f64 = -0.7451581436739864;
-const END_X: f64 = -0.745158143674001;
-const START_Y: f64 = 0.12397760041489125;
-const END_Y: f64 = 0.12397760041487654;
+const START_X: f64 = -0.7451581436739864000000000000000;
+const END_X: f64 = -  0.7451581436740010000000000000000;
+const START_Y: f64 =  0.1239776004148912500000000000000;
+const END_Y: f64 =    0.1239776004148765400000000000000;
 
 // const START_X: f32 = -2.5;
 // const START_Y: f32 = -2.5;
@@ -22,77 +22,85 @@ const WIDTH: f64 = 600.0;
 const MAX_ITER: f64 = 1000.0;
 
 fn main() {
-    let reference =   Complex::new(-0.745158143673996,  0.12397760041488097);
-    let first_pixel = Complex::new(-0.7451581436739864, 0.12397760041489125);
+    let reference = Complex::new(-0.7451581436739960000000000000, 0.123977600414880970000000000000);
+    let first_pxiel = Complex::new(-0.74515814367398640000000000, 0.123977600414891250000000000000);
 
-    let mut pixels = Vec::new();
-    for i in 0..600 {
-        for j in 0..600 {
-            let x = START_X + (i as f64 * (END_X - START_X) / WIDTH);
-            let y = START_Y + (j as f64 * (END_Y - START_Y) / WIDTH);
-            pixels.push(Complex::new(x, y));
-        }
+    let x_0 =  Complex::new( -0.745158143673996, 0.12397760041488097);
+    // let x_n_1 = low_precision_series((x_0.real, x_0.imag));
+    // let x_n = x_0.get_series(1000);
+    let x_n_high = x_0.high_precision_series(1000, 50);
+
+    // let screen_size = WIDTH * WIDTH;
+    // let end_x = float_to_dbig(END_X).with_precision(30).unwrap();
+    // let start_x = float_to_dbig(START_X).with_precision(30).unwrap();
+    // let start_y = float_to_dbig(START_Y).with_precision(30).unwrap();
+    // let width = float_to_dbig(WIDTH).with_precision(30).unwrap();
+    // let slope = (&end_x - &start_x) / &width;
+    // let slope2 = (&END_X - &START_X) / WIDTH;
+    // let mut pixels: Vec<Complex> = Vec::new();
+    // let mut pixels2: Vec<Complex> = Vec::new();
+
+    // for i in 0..WIDTH as i32 {
+    //     for j in 0..WIDTH as i32{
+    //         let x = &START_X +slope2 * i as f64;
+    //         let y = &START_Y +slope2 * j as f64;
+    //         pixels2.push(Complex::new(x, y));
+    //     }
+    // }
+
+
+    // for i in 0..WIDTH as i32 {
+    //     for j in 0..WIDTH as i32{
+    //         let x = &start_x + (&slope * float_to_dbig(i as f64));
+    //         let y = &start_y + (&slope * float_to_dbig(j as f64));
+    //         pixels.push(Complex::new(dbig_to_float(x.clone()), dbig_to_float(y.clone())));
+    //     }
+    // }
+
+    //print first 10 pixels
+    // for i in 0..100 {
+    //     print!("Pixel:  {}, {}\n", pixels[i].real, pixels[i].imag);
+    //     print!("Pixel2: {}, {}\n", pixels2[i].real, pixels2[i].imag);
+    // }
+
+    //let n = modified_xy_mandelbrot_perturbation(x_n_high.clone(), first_pxiel, 1000.0);
+    //print!("Iterations: {}\n", n);
+
+    let pixels = get_perturbed_pixels(START_X, START_Y, END_X, WIDTH, MAX_ITER);
+
+    // //print all the values
+    let values = pixels.values().clone();
+    for i in 0..10 {
+        print!("{} \n", values[i]);
     }
 
-
-    let n = mandelbrot_floats(first_pixel.real, first_pixel.imag, 1000);
-    // let high_res = high_precision_series((
-    //     float_to_dbig(-0.7451581436739864),
-    //     float_to_dbig(0.12397760041489125),
-    // ));
-    let low_res = low_precision_series((reference.real, reference.imag));
-
-    let perturbation = xy_mandelbrot_perturbation(
-        low_res.0.clone(),
-        low_res.1.clone(),
-        pixels[0].clone(),
-        1000 as f64,
-    );
-    // let perturbation2 = xy_mandelbrot_perturbation(
-    //     low_res.0.clone(),
-    //     low_res.1.clone(),
-    //     pixels[1].clone(),
-    //     1000 as f64,
-    // );
-
-    print!("Iterations: {}\n", n);
-    print!("low res: {}\n", low_res.1.len() -2);
-    print!("Perturbation: {}\n", perturbation);
-    // print!("Perturbation2: {}\n", perturbation2);
-
-
-    // let values = get_frame_values(START_X, START_Y, END_X, WIDTH, MAX_ITER);
-    // let pertTurbedVals = get_perturbed_pixels2(START_X, START_Y, END_X, WIDTH, MAX_ITER);
-    // //print the first 10 values
-    // // let vals = values.values();
-    // // for i in 0..10 {
-    // //     print!("Value: {}\n", vals[i]);
-    // // }
-    // let perVals = pertTurbedVals.values();
-    // for i in 0..10 {
-    //     print!("Perts: {}\n", perVals[i])
-    // }
     
-
+    // // //print last 10 values of x_n, x_n_1, x_n_high
+    // for i in 0..10 {
+    //     print!("x_n:      {}, {}\n", x_n[i].real, x_n[i].imag);
+    //     print!("x_n_1:    {}, {}\n", x_n_1[i].real, x_n_1[i].imag);
+    //     print!("x_n_high: {}, {}\n", x_n_high[i+1].real, x_n_high[i+1].imag);
+    // }
 
 
 }
 
-//create a function that can accurately decipher the correct points faster
 //and more correctly than the current function
 
 pub fn xy_mandelbrot_perturbation(
-    series: Vec<(Complex, Complex, Complex)>,
     x_n: Vec<Complex>,
     y0: Complex,
     max_iterations: f64,
 ) -> u32 {
-    let delta_0: Complex = &y0 - x_n[0].clone();
+    let delta_0: Complex = &y0 - x_n[1].clone();
+    let mut delta_n = Vec::new();
+    let two_complex = Complex::new(2.0, 0.0);
+    delta_n.push(delta_0.clone());
     //check if delta^3 is significantly smaller than delta^2
     if !significanly_smaller(delta_0.clone()) {
         print!("delta^3 is not significantly smaller than delta^2\n");
         //priny y0 and x0
-        print!("y0: {}, x0: {}\n", y0, x_n[0]);
+        print!("y0: {}, x0: {}\n", y0, x_n[1]);
         print!(
             "delta^3: {}, delta^2: {}\n",
             delta_0.pow(3).magnitude(),
@@ -100,141 +108,115 @@ pub fn xy_mandelbrot_perturbation(
         );
         panic!("delta^3 is not significantly smaller than delta^2");
     }
-    for n in 0..max_iterations as usize {
-        let delta_n = (&series[n+1].0 * &delta_0)
-            + (&series[n+1].1 * delta_0.square())
-            + (&series[n+1].2 * delta_0.pow(3));
-        // let yn = &x_n[n] + &delta_n;
-        let yn = &x_n[n+1] + &delta_n;
-
-       
-        if  n < 1{
-            print!("n: {} - {}\n", delta_n.real, delta_n.imag);
-            print!("n: {} - {}\n", &x_n[n+1].real, &x_n[n+1].imag);
-            print!("n: {} - {}\n", yn.real, yn.imag);
-            // print!("c: {},   d: {}\n", yn.real, yn.imag);
-            //print magnitude
-    
-        }
-        if  &yn.real * &yn.real + &yn.imag * &yn.imag > 4.0{
-            //print the number of iterations it took to escape
+    for n in 0..x_n.len() {
+        let delta = &two_complex * &x_n[n] * &delta_n[n] + &delta_n[n].square() + &delta_0;
+        let yn = &x_n[n] + &delta;
+        delta_n.push(delta);
+        if yn.magnitude() > 2.0 {
             return n as u32;
-        }       
+        }
     }
+    
     return max_iterations as u32;
 }
 
-//high precision function
-pub fn high_precision_series(
-    mut c: (DBig, DBig),
-) -> (Vec<(Complex, Complex, Complex)>, Vec<Complex>) {
-    let max_iter = 1000;
-    //first we compute the high precision series for the given c0
-    let ac = c.0.clone();
-    let bc = c.1.clone();
-    let four: DBig = DBig::from(4);
-    let two: DBig = DBig::from(2);
-    let mut series: Vec<(Complex, Complex, Complex)> = Vec::new();
-    let mut Xn: Vec<Complex> = Vec::new();
-
-    Xn.push(Complex::new(
-        c.0.to_string().parse::<f64>().unwrap(),
-        c.1.to_string().parse::<f64>().unwrap(),
-    ));
-    print!("Xn: {}\n", Xn[0]);
-    let mut A = Complex::new(1.0, 0.0);
-    let mut B = Complex::new(0.0, 0.0);
-    let mut C = Complex::new(0.0, 0.0);
+fn modified_xy_mandelbrot_perturbation(
+    x_n: Vec<Complex>,
+    y0: Complex,
+    max_iterations: f64,
+) -> u32 {
+    let delta_0: Complex = y0.high_prec_sub(x_n[1].clone(), 100);
+    delta_0.print_high_precision();
+    print!("real: {}, imag: {}\n", delta_0.real, delta_0.imag);
+    let mut delta_z = Complex::new(0.0, 0.0);
     let two_complex = Complex::new(2.0, 0.0);
-    let one_complex = Complex::new(1.0, 0.0);
-    series.push((A.clone(), B.clone(), C.clone()));
-
-    for n in 0..max_iter {
-        let aa = (&c.0 * &c.0) - (&c.1 * &c.1);
-        let bb = &two * &c.0 * &c.1;
-        c.0 = aa + &ac;
-        c.1 = bb + &bc;
-
-        //series logic
-        let temp_a = A.clone();
-        let temp_b = B.clone();
-        let temp_c = C.clone();
-        let x_n = Complex::new(
-            c.0.to_string().parse::<f64>().unwrap(),
-            c.1.to_string().parse::<f64>().unwrap(),
+    let mut ref_iter = 0;
+    let mut iter = 0;
+    let max_iter = x_n.len() as f64-2.0;
+    //check if delta^3 is significantly smaller than delta^2
+    if !significanly_smaller(delta_0.clone()) {
+        print!("delta^3 is not significantly smaller than delta^2\n");
+        //priny y0 and x0
+        print!("y0: {}\nx0: {}\n", y0, x_n[1]);
+        //print high press parts of y0 and x0
+        y0.print_high_precision();
+        x_n[1].print_high_precision();
+        print!(
+            "delta^3: {}, delta^2: {}\n",
+            delta_0.pow(3).magnitude(),
+            delta_0.square().magnitude()
         );
-
-        Xn.push(x_n.clone());
-
-        A = &two_complex * &x_n * &temp_a + &one_complex;
-        B = &two_complex * &x_n * &temp_b + temp_a.square();
-        C = &two_complex * &x_n * temp_c + &two_complex * &temp_a * &temp_b;
-        series.push((A.clone(), B.clone(), C.clone()));
-
-        if n >= 0 && n < 10 {
-            print!("a: {}, b: {}\n", &c.0, &c.1);
-            //print magnitude
-        }
-
-        if &c.0 * &c.0 + &c.1 * &c.1 > four {
-            // print!("Iterations high res: {}\n", n);
-            // print!("c: {}, {}\n", &c.0, &c.1);
-            return (series, Xn);
-        }
+        print!("delta_0: {}\n", delta_0);
+        panic!("delta^3 is not significantly smaller than delta^2");
     }
-    return (series, Xn);
+    while iter < max_iter as usize{
+        delta_z = &two_complex  * &delta_z * &x_n[ref_iter] + &delta_z.square() + &delta_0;
+        // print!("delta_z: {}\n", delta_z);
+        ref_iter += 1;
+        let yn = &x_n[ref_iter] + &delta_z;
+        if yn.magnitude() > 2.0 {
+            return iter as u32;
+        }
+        if yn.magnitude() < delta_z.magnitude() || ref_iter == max_iter as usize {
+            delta_z = yn.clone();
+            ref_iter = 0;
+        }
+        iter += 1;
+    }
+    
+    return max_iterations as u32;
 }
 
-//low precision function
-pub fn low_precision_series(mut c: (f64, f64)) -> (Vec<(Complex, Complex, Complex)>, Vec<Complex>) {
-    let max_iter = 1000;
-    //first we compute the high precision series for the given c0
-    let ac = c.0.clone();
-    let bc = c.1.clone();
-    let four: f64 = 4.0;
-    let two: f64 = 2.0;
-    let mut series: Vec<(Complex, Complex, Complex)> = Vec::new();
-    let mut Xn: Vec<Complex> = Vec::new();
-
-    Xn.push(Complex::new(c.0, c.1));
-    // print!("Xn: {}\n", Xn[0]);
-    let mut A = Complex::new(1.0, 0.0);
-    let mut B = Complex::new(0.0, 0.0);
-    let mut C = Complex::new(0.0, 0.0);
-    let two_complex = Complex::new(2.0, 0.0);
-    let one_complex = Complex::new(1.0, 0.0);
-    series.push((A.clone(), B.clone(), C.clone()));
-
-    for n in 0..max_iter {
-        let aa = (c.0 * c.0) - (c.1 * c.1);
-        let bb = two * c.0 * c.1;
-        c.0 = aa + ac;
-        c.1 = bb + bc;
-
-        let temp_a = A.clone();
-        let temp_b = B.clone();
-        let temp_c = C.clone();
-        let x_n = Complex::new(c.0, c.1);
-
-        Xn.push(x_n.clone());
-
-        A = &two_complex * &x_n * &temp_a + &one_complex;
-        B = &two_complex * &x_n * &temp_b + &temp_a.square();
-        C = &two_complex * &x_n * &temp_c + &two_complex * temp_a * &temp_b;
-        series.push((A.clone(), B.clone(), C.clone()));
-
-        // if n >= 0 && n < 10 {
-        //     print!("a: {}, b: {}\n", c.0, c.1);
-        //     //print magnitude
-        // }
-        if c.0 * c.0 + c.1 * c.1 > four {
-            // print!("Iterations low res: {}\n", n);
-            // print!("c: {}, {}\n", c.0, c.1);
-            return (series, Xn);
-        }
+fn modified_xy_mandelbrot_perturbation_high_prec(
+    x_n: Vec<Complex>,
+    y0: Complex,
+    max_iterations: f64,
+) -> u32 {
+    let precision = 100;
+    let delta_0: Complex = y0.high_prec_sub(x_n[1].clone(), 100);
+    // delta_0.print_high_precision();
+    // print!("real: {}, imag: {}\n", delta_0.real, delta_0.imag);
+    let mut delta_z = Complex::new_with_high_precision(float_to_dbig(0.0), float_to_dbig(0.0), precision);
+    let two_complex = Complex::new_with_high_precision(float_to_dbig(2.0), float_to_dbig(0.0), precision);
+    let mut ref_iter = 0;
+    let mut iter = 0;
+    let max_iter = x_n.len() as f64-2.0;
+    //check if delta^3 is significantly smaller than delta^2
+    if !significanly_smaller(delta_0.clone()) {
+        print!("delta^3 is not significantly smaller than delta^2\n");
+        //priny y0 and x0
+        print!("y0: {}\nx0: {}\n", y0, x_n[1]);
+        //print high press parts of y0 and x0
+        y0.print_high_precision();
+        x_n[1].print_high_precision();
+        print!(
+            "delta^3: {}, delta^2: {}\n",
+            delta_0.pow(3).magnitude(),
+            delta_0.square().magnitude()
+        );
+        print!("delta_0: {}\n", delta_0);
+        panic!("delta^3 is not significantly smaller than delta^2");
     }
-    return (series, Xn);
+    while iter < max_iter as usize{
+        delta_z = two_complex.high_prec_mul(&delta_z,precision).high_prec_mul(&x_n[ref_iter], precision).high_prec_add(delta_z.high_prec_square(precision),precision).high_prec_add(delta_0.clone(),precision);
+        // print!("delta_z: {}\n", delta_z);
+        ref_iter += 1;
+        let yn = x_n[ref_iter].high_prec_add(delta_z.clone(), precision);
+        if yn.magnitude() > 2.0 {
+            return iter as u32;
+        }
+        if yn.magnitude() < delta_z.magnitude() || ref_iter == max_iter as usize {
+            delta_z = yn.clone();
+            ref_iter = 0;
+        }
+        iter += 1;
+    }
+    
+    return max_iterations as u32;
 }
+
+
+
 
 pub fn get_perturbed_pixels(
     start_x: f64,
@@ -247,51 +229,41 @@ pub fn get_perturbed_pixels(
     //print screen size
     // print!("Screen size: {}\n", width * width);
     let screen_size = width * width;
-    let slope = (&end_x - &start_x) / width;
-    let pixesl: Vec<Complex> = (0..screen_size as i32)
-        .map(|i| {
-            let x = i % width as i32;
-            let y = i / width as i32;
-            // pixels are not mapped to the complex plane correctly
+    let slopef64 = (&end_x - &start_x) / width;
+    let slope = float_to_dbig(slopef64);
+    let start_x = float_to_dbig(start_x);
+    let start_y = float_to_dbig(start_y);
+    let mut pixels: Vec<Complex> = Vec::new();
 
-            let x = start_x + (slope * x as f64);
-            let y = start_y + (slope * y as f64);
-            Complex::new(x, y)
-        })
-        .collect();
-
-    ////print the first 10 pixels
-    // for i in 0..10 {
-    //     print!("Pixel: {}\n", pixesl[i]);
-    // }
-    // return FrameValues::new(Vec::new(), 0.0, 0.0);
+    for i in 0..WIDTH as i32 {
+        for j in 0..WIDTH as i32{
+            let x = &start_x + (&slope * float_to_dbig(i as f64));
+            let y = &start_y + (&slope * float_to_dbig(j as f64));
+            pixels.push(Complex::new_with_high_precision(x, y, 100));
+        }
+    }
 
     let mut high_res_found = false;
-    let mut pixesl_clone = pixesl.clone();
+    let mut pixels_clone = pixels.clone();
     let mut loops = 0;
-    let mut high_res = (Vec::new(), Vec::new());
+    let mut high_res = Vec::new();
     //let time = std::time::Instant::now();
     let mut max = 0;
-    let mut max_res: (Vec<(Complex, Complex, Complex)>, Vec<Complex>) = (Vec::new(), Vec::new());
-    while !high_res_found {
-        let random_index = rand::random::<usize>() % pixesl_clone.len();
-        let y0 = Complex::new(
-            pixesl_clone[random_index].real,
-            pixesl_clone[random_index].imag,
-        );
-        //remove the random index from the list
-        pixesl_clone.remove(random_index);
-        high_res = high_precision_series((float_to_dbig(y0.real), float_to_dbig(y0.imag)));
-        let n = high_res.0.len();
+    let mut max_res: Vec<Complex> = Vec::new();
 
-        if high_res.0.len() > max as usize {
+    while !high_res_found {
+        let random_index = rand::random::<usize>() % &pixels_clone.len();
+        let mut y0 = pixels_clone[random_index].clone();
+        //remove the random index from the list
+        pixels_clone.remove(random_index);
+        high_res = y0.high_precision_series(1000, 100);
+        // high_res = low_precision_series((y0.real, y0.imag));
+        let n = high_res.len();
+
+        if n > max as usize {
             max = n;
             max_res = high_res.clone();
             print!("Max: {}\n", max);
-            //need to remove later;
-            // if high_res.0.len()>=3{
-            //     break;
-            // }
         }
 
         if n >= max_iter as usize {
@@ -299,36 +271,26 @@ pub fn get_perturbed_pixels(
             break;
         }
         loops += 1;
-        if loops == pixesl.len() {
+        if loops == pixels.len() {
             //throw an error
             high_res = max_res.clone();
             break;
             // panic!("Could not find a high precision series that could generate the right amount of iterations max: {}", n)
         }
     }
-
-    // println!(
-    //     "Time elapsed to get high_res is: {:?}",
-    //     time.elapsed()
-    // );
-
-    // print!("High res: {:?}\n", high_res.1[0]);
-    // print!("High res length: {}\n", high_res.0.len());
-
-    // for i in 0..10 {
-    //     print!("High_res: {}\n", high_res.0[i].0);
-    // }
-
-    // return FrameValues::new(Vec::new(), 0.0, 0.0);
-
-    // return FrameValues::new(Vec::new(), 0.0, 0.0);
+    // let y0 = Complex::new(0.01, 0.01);
+    // let high_res = y0.high_precision_series(1000, 50);
 
     let mut max = 0.0;
     let mut min = 100000.0;
     let mut res: Vec<f64> = Vec::new();
     for i in 0..screen_size as usize {
-        let y0 = Complex::new(pixesl[i].real, pixesl[i].imag);
-        let n = xy_mandelbrot_perturbation(high_res.0.clone(), high_res.1.clone(), y0, max_iter);
+        let y0 = pixels[i].clone();
+        let n = modified_xy_mandelbrot_perturbation_high_prec( high_res.clone(), y0, max_iter);
+        if i % 1000 == 0 {
+            print!("i is {} out of {}\n", i, screen_size);
+        }
+
         res.push(n as f64);
         if n as f64 > max {
             max = n as f64;
@@ -358,74 +320,7 @@ pub fn float_to_dbig(f: f64) -> DBig {
     return DBig::from_str(&f.to_string()).unwrap();
 }
 
-
-fn get_perturbed_pixels2(
-    start_x: f64,
-    start_y: f64,
-    end_x: f64,
-    width: f64,
-    max_iter: f64,
-)-> FrameValues{
-    let reference =   Complex::new(-0.745158143673996,  0.12397760041488097);
-    let slope = (&end_x - &start_x) / &width;
-    let mut arr : Vec<(i32, i32)> = Vec::new();
-    for i in 0..width as i32{
-        for j in 0..width as i32{
-            arr.push((i, j));
-        }
-    }
-
-    let mut high_res_found = false;
-    let mut high_res = (Vec::new(), Vec::new());
-    // let mut loops = 0;
-    // let mut max = 0;
-    // let mut max_res: (Vec<(Complex, Complex, Complex)>, Vec<Complex>) = (Vec::new(), Vec::new());
-    while !&high_res_found{
-        let random_index = rand::random::<usize>() % arr.len();
-        let y0 = Complex::new(
-            start_x + (slope * arr[random_index].0 as f64),
-            start_y + (slope * arr[random_index].1 as f64),
-        );
-        high_res = low_precision_series(((y0.real),(y0.imag)));
-        break;
-        // let n = high_res.0.len();
-        // if high_res.0.len() > max as usize{
-        //     max = n;
-        //     max_res = high_res.clone();
-        // }
-        // if n >= max_iter as usize{
-        //     high_res_found = true;
-        //     break;
-        // }
-        // loops += 1;
-        // if loops == arr.len(){
-        //     high_res = max_res.clone();
-        //     break;
-        // }
-    }
-
-    let mut res = Vec::new();
-    let mut max = 0;
-    let mut min = 100000;
-
-    for i in 0..width as usize{
-        let y0 = Complex::new(
-            start_x + (slope * i as f64),
-            start_y + (slope * i as f64),
-        );
-
-        let size = high_res.1.len();
-        let n = xy_mandelbrot_perturbation(high_res.0.clone(), high_res.1.clone(), y0, size as f64);
-        res.push(n as f64);
-        if n as f64 > max as f64{
-            max = n;
-        }
-        if n  < min{
-            min = n;
-        }
-    }
-
-    return FrameValues::new(res, min as f64, max as f64);
-
-
-}   
+pub fn dbig_to_float(d: DBig) -> f64 {
+    //turn to string
+    return d.to_string().parse::<f64>().unwrap();
+}
